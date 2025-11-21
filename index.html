@@ -1,7 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>奧黛的顏色My Mom</title>
+    <title>奧黛的顏色 My Mom</title>
+    
+    <meta property="og:title" content="奧黛的顏色 My Mom - 電子繪本">
+    <meta property="og:description" content="這是一本關於母愛與奧黛的溫馨故事。點擊連結線上閱讀，體驗翻頁效果。">
+    <meta property="og:type" content="book">
+    <meta property="og:url" content="https://MikeLungChihC.github.io/flipbook-demo/">
+    <meta property="og:image" content="https://MikeLungChihC.github.io/flipbook-demo/images/1.jpg">
+    <meta property="og:image:width" content="800">
+    <meta property="og:image:height" content="500">
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     
@@ -22,7 +31,6 @@
 
         /* 2. 書本容器 */
         #flipbook {
-            /* 這裡的寬高會由 JS 動態控制，所以 CSS 先預設 */
             transition: transform 0.5s ease-in-out;
         }
 
@@ -42,7 +50,7 @@
             user-drag: none;
         }
 
-        /* --- 電腦版的分隔線 (手機版會被下面的 Media Query 蓋掉) --- */
+        /* 電腦版的分隔線 */
         #flipbook .page:nth-child(even) { border-right: 1px solid #d0d0d0; }
         #flipbook .page:nth-child(odd) { border-left: 1px solid #d0d0d0; }
 
@@ -97,18 +105,12 @@
             transform: translateY(-3px);
         }
 
-        /* ⭐⭐⭐ 手機版專用設定 (Media Query) ⭐⭐⭐ */
-        /* 當螢幕寬度小於 600px 時，執行這裡的 CSS */
+        /* 手機版設定 */
         @media (max-width: 600px) {
-            /* 手機版取消分隔線，因為是單頁顯示 */
             #flipbook .page { border: none !important; }
-            
-            /* 手機版按鈕改小一點，避免擋住圖 */
             .nav-button { width: 30px; height: 50px; font-size: 20px; line-height: 50px; }
             #prev-btn { left: 5px; }
             #next-btn { right: 5px; }
-
-            /* 手機版回到封面按鈕移到上方，避免擋住翻頁 */
             #home-btn { bottom: 10px; right: 10px; padding: 8px 15px; font-size: 14px; }
         }
     </style>
@@ -164,33 +166,25 @@
             
             var flipSound = document.getElementById("page-sound");
 
-            // ⭐ 1. 判斷現在是不是手機 (螢幕寬度小於 600px)
             function isMobile() {
                 return $(window).width() < 600;
             }
 
-            // ⭐ 2. 設定電子書的大小和模式
-            var displayMode = isMobile() ? 'single' : 'double'; // 手機用單頁，電腦用雙頁
+            var displayMode = isMobile() ? 'single' : 'double';
             var bookWidth = 800;
             var bookHeight = 500;
 
             if (isMobile()) {
-                // 如果是手機，寬度設為螢幕寬度的 90%，高度依比例縮放
                 var screenWidth = $(window).width();
-                bookWidth = screenWidth * 0.95; // 稍微留一點邊
-                // 假設單頁比例是 400:500 = 0.8
+                bookWidth = screenWidth * 0.95; 
                 bookHeight = bookWidth / 0.8; 
             }
 
-            // ⭐ 3. 調整位置函數 (電腦版才需要位移，手機版不准動)
             function adjustPosition(page) {
                 if (isMobile()) {
-                    // 手機模式：永遠保持在中間，不要亂動
                     $('#flipbook').css('transform', 'translateX(0px)');
                     return;
                 }
-
-                // 電腦模式：照舊執行位移
                 if (page === 1) {
                     $('#flipbook').css('transform', 'translateX(-200px)');
                 } else if (page === 30) {
@@ -200,10 +194,8 @@
                 }
             }
 
-            // 初始化
             adjustPosition(1);
 
-            // ⭐ 4. 啟動 turn.js (帶入計算好的寬高和模式)
             $('#flipbook').turn({
                 display: displayMode,
                 autoCenter: false, 
@@ -220,12 +212,10 @@
                 }
             });
 
-            // 按鈕功能
             $('#prev-btn').click(function() { $('#flipbook').turn('previous'); });
             $('#next-btn').click(function() { $('#flipbook').turn('next'); });
             $('#home-btn').click(function() { $('#flipbook').turn('page', 1); });
 
-            // 點擊翻頁
             $('#flipbook').bind('click', function(e){
                 var offset = $(this).offset();
                 if (e.clientX < offset.left + $(this).width() / 2) {
@@ -235,10 +225,7 @@
                 }
             });
 
-            // ⭐ 5. 如果使用者旋轉手機，重新整理頁面以適應新尺寸
             $(window).resize(function() {
-                // 簡單暴力的解法：旋轉螢幕後直接重整，讓它重新計算大小
-                // 避免複雜的動態重繪 bug
                 location.reload();
             });
         });
