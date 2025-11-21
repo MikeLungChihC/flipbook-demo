@@ -8,40 +8,65 @@
     <link rel="stylesheet" href="lib/turn.css" />
 
     <style>
-        /* 讓整個網頁內容置中 (Flexbox) */
+        /* 1. 網頁背景設定 */
         body, html { 
             margin: 0; 
             padding: 0; 
             height: 100%; 
             overflow: hidden; 
-        }
-        body { 
             background-color: #f0f0f0; 
             display: flex;              
             justify-content: center;    
             align-items: center;        
         }
 
+        /* 2. 書本容器 */
         #flipbook {
             width: 800px;
             height: 500px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            background-color: white;
+            transition: transform 0.5s ease-in-out;
         }
 
+        /* 3. 頁面基本設定 */
+        #flipbook .page {
+            background-color: white;
+            box-sizing: border-box; /* 確保線條不會撐大頁面 */
+            /* 基礎浮起陰影 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        }
+
+        /* 4. 圖片設定 */
         #flipbook .page img {
             width: 100%;
             height: 100%;
             display: block;
+            -webkit-user-drag: none;
+            user-drag: none;
         }
 
-        /* ⭐ 修正：把這段加回來了（頁面右側的灰色分隔線） */
-        #flipbook .page {
-            border-right: 1.5px solid #cfcfcf; /* 這就是那條線 */
-            box-sizing: border-box;            /* 確保線不會撐破版面 */
+        /* --- ⭐ 簡約分隔線 (取代複雜陰影) ⭐ --- */
+
+        /* 左頁 (偶數頁)：在右側加一條淺灰線 */
+        #flipbook .page:nth-child(even) {
+            border-right: 1px solid #d0d0d0 !important;
         }
 
-        /* 翻頁按鈕 */
+        /* 右頁 (奇數頁)：在左側加一條淺灰線 */
+        #flipbook .page:nth-child(odd) {
+            border-left: 1px solid #d0d0d0 !important;
+        }
+
+        /* 封面(1) 與 封底(30) 不要這條線，維持獨立立體感 */
+        #flipbook .page[page="1"] { 
+            border: none !important;
+            box-shadow: 5px 5px 20px rgba(0,0,0,0.3) !important; 
+        }
+        #flipbook .page[page="30"] { 
+            border: none !important;
+            box-shadow: -5px 5px 20px rgba(0,0,0,0.3) !important; 
+        }
+
+        /* --- 按鈕樣式 --- */
         .nav-button {
             position: fixed;
             top: 50%;
@@ -59,34 +84,31 @@
             opacity: 0.8;
             transition: opacity 0.3s;
             outline: none;
+            border-radius: 5px;
         }
         .nav-button:hover { opacity: 1; }
-        #prev-btn { left: 10px; border-radius: 0 5px 5px 0; }
-        #next-btn { right: 10px; border-radius: 5px 0 0 5px; }
+        #prev-btn { left: 20px; }
+        #next-btn { right: 20px; }
 
-        /* 回到封面按鈕 (右下角) */
         #home-btn {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            background: rgba(0, 0, 0, 0.6);
+            bottom: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 30px;
             cursor: pointer;
             font-size: 16px;
             z-index: 101;
-            opacity: 0.8;
             transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         #home-btn:hover {
-            opacity: 1;
-            background: rgba(0, 0, 0, 0.8);
-            transform: translateY(-2px);
+            background: rgba(0, 0, 0, 0.9);
+            transform: translateY(-3px);
         }
-
     </style>
 </head>
 <body>
@@ -140,6 +162,18 @@
             
             var flipSound = document.getElementById("page-sound");
 
+            function adjustPosition(page) {
+                if (page === 1) {
+                    $('#flipbook').css('transform', 'translateX(-200px)');
+                } else if (page === 30) {
+                    $('#flipbook').css('transform', 'translateX(200px)');
+                } else {
+                    $('#flipbook').css('transform', 'translateX(0px)');
+                }
+            }
+
+            adjustPosition(1);
+
             $('#flipbook').turn({
                 display: 'double',
                 autoCenter: false, 
@@ -147,28 +181,22 @@
                 height: 500,
                 when: {
                     turning: function(event, page, view) {
+                        adjustPosition(page);
                         if (flipSound) {
                             flipSound.currentTime = 0;
-                            flipSound.play().catch(function(e) { });
+                            flipSound.play().catch(function(e) {});
                         }
                     }
                 }
             });
 
-            $('#prev-btn').click(function() {
-                $('#flipbook').turn('previous');
-            });
-
-            $('#next-btn').click(function() {
-                $('#flipbook').turn('next');
-            });
-
-            $('#home-btn').click(function() {
-                $('#flipbook').turn('page', 1); 
-            });
+            $('#prev-btn').click(function() { $('#flipbook').turn('previous'); });
+            $('#next-btn').click(function() { $('#flipbook').turn('next'); });
+            $('#home-btn').click(function() { $('#flipbook').turn('page', 1); });
 
             $('#flipbook').bind('click', function(e){
-                if (e.clientX < $(this).offset().left + $(this).width() / 2) {
+                var offset = $(this).offset();
+                if (e.clientX < offset.left + $(this).width() / 2) {
                     $('#flipbook').turn('previous');
                 } else {
                     $('#flipbook').turn('next');
