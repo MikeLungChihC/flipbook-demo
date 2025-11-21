@@ -3,7 +3,7 @@
 <head>
     <title>奧黛的顏色My Mom</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     
     <link rel="stylesheet" href="lib/turn.css" />
 
@@ -22,16 +22,14 @@
 
         /* 2. 書本容器 */
         #flipbook {
-            width: 800px;
-            height: 500px;
+            /* 這裡的寬高會由 JS 動態控制，所以 CSS 先預設 */
             transition: transform 0.5s ease-in-out;
         }
 
         /* 3. 頁面基本設定 */
         #flipbook .page {
             background-color: white;
-            box-sizing: border-box; /* 確保線條不會撐大頁面 */
-            /* 基礎浮起陰影 */
+            box-sizing: border-box;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
         }
 
@@ -44,26 +42,15 @@
             user-drag: none;
         }
 
-        /* --- ⭐ 簡約分隔線 (取代複雜陰影) ⭐ --- */
+        /* --- 電腦版的分隔線 (手機版會被下面的 Media Query 蓋掉) --- */
+        #flipbook .page:nth-child(even) { border-right: 1px solid #d0d0d0; }
+        #flipbook .page:nth-child(odd) { border-left: 1px solid #d0d0d0; }
 
-        /* 左頁 (偶數頁)：在右側加一條淺灰線 */
-        #flipbook .page:nth-child(even) {
-            border-right: 1px solid #d0d0d0 !important;
-        }
-
-        /* 右頁 (奇數頁)：在左側加一條淺灰線 */
-        #flipbook .page:nth-child(odd) {
-            border-left: 1px solid #d0d0d0 !important;
-        }
-
-        /* 封面(1) 與 封底(30) 不要這條線，維持獨立立體感 */
-        #flipbook .page[page="1"] { 
-            border: none !important;
-            box-shadow: 5px 5px 20px rgba(0,0,0,0.3) !important; 
-        }
+        /* 封面封底無分隔線 */
+        #flipbook .page[page="1"], 
         #flipbook .page[page="30"] { 
             border: none !important;
-            box-shadow: -5px 5px 20px rgba(0,0,0,0.3) !important; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3); 
         }
 
         /* --- 按鈕樣式 --- */
@@ -108,6 +95,21 @@
         #home-btn:hover {
             background: rgba(0, 0, 0, 0.9);
             transform: translateY(-3px);
+        }
+
+        /* ⭐⭐⭐ 手機版專用設定 (Media Query) ⭐⭐⭐ */
+        /* 當螢幕寬度小於 600px 時，執行這裡的 CSS */
+        @media (max-width: 600px) {
+            /* 手機版取消分隔線，因為是單頁顯示 */
+            #flipbook .page { border: none !important; }
+            
+            /* 手機版按鈕改小一點，避免擋住圖 */
+            .nav-button { width: 30px; height: 50px; font-size: 20px; line-height: 50px; }
+            #prev-btn { left: 5px; }
+            #next-btn { right: 5px; }
+
+            /* 手機版回到封面按鈕移到上方，避免擋住翻頁 */
+            #home-btn { bottom: 10px; right: 10px; padding: 8px 15px; font-size: 14px; }
         }
     </style>
 </head>
@@ -162,7 +164,33 @@
             
             var flipSound = document.getElementById("page-sound");
 
+            // ⭐ 1. 判斷現在是不是手機 (螢幕寬度小於 600px)
+            function isMobile() {
+                return $(window).width() < 600;
+            }
+
+            // ⭐ 2. 設定電子書的大小和模式
+            var displayMode = isMobile() ? 'single' : 'double'; // 手機用單頁，電腦用雙頁
+            var bookWidth = 800;
+            var bookHeight = 500;
+
+            if (isMobile()) {
+                // 如果是手機，寬度設為螢幕寬度的 90%，高度依比例縮放
+                var screenWidth = $(window).width();
+                bookWidth = screenWidth * 0.95; // 稍微留一點邊
+                // 假設單頁比例是 400:500 = 0.8
+                bookHeight = bookWidth / 0.8; 
+            }
+
+            // ⭐ 3. 調整位置函數 (電腦版才需要位移，手機版不准動)
             function adjustPosition(page) {
+                if (isMobile()) {
+                    // 手機模式：永遠保持在中間，不要亂動
+                    $('#flipbook').css('transform', 'translateX(0px)');
+                    return;
+                }
+
+                // 電腦模式：照舊執行位移
                 if (page === 1) {
                     $('#flipbook').css('transform', 'translateX(-200px)');
                 } else if (page === 30) {
@@ -172,13 +200,15 @@
                 }
             }
 
+            // 初始化
             adjustPosition(1);
 
+            // ⭐ 4. 啟動 turn.js (帶入計算好的寬高和模式)
             $('#flipbook').turn({
-                display: 'double',
+                display: displayMode,
                 autoCenter: false, 
-                width: 800,
-                height: 500,
+                width: bookWidth,
+                height: bookHeight,
                 when: {
                     turning: function(event, page, view) {
                         adjustPosition(page);
@@ -190,10 +220,12 @@
                 }
             });
 
+            // 按鈕功能
             $('#prev-btn').click(function() { $('#flipbook').turn('previous'); });
             $('#next-btn').click(function() { $('#flipbook').turn('next'); });
             $('#home-btn').click(function() { $('#flipbook').turn('page', 1); });
 
+            // 點擊翻頁
             $('#flipbook').bind('click', function(e){
                 var offset = $(this).offset();
                 if (e.clientX < offset.left + $(this).width() / 2) {
@@ -201,6 +233,13 @@
                 } else {
                     $('#flipbook').turn('next');
                 }
+            });
+
+            // ⭐ 5. 如果使用者旋轉手機，重新整理頁面以適應新尺寸
+            $(window).resize(function() {
+                // 簡單暴力的解法：旋轉螢幕後直接重整，讓它重新計算大小
+                // 避免複雜的動態重繪 bug
+                location.reload();
             });
         });
     </script>
